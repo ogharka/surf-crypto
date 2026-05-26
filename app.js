@@ -1,5 +1,4 @@
-const SURF_KEY = 'sk-surf-8ab19ae9884b6aa765ed91918a83993e04972bc766a89c7d64fce95fe03c144c';
-const SURF_BASE = 'https://api.asksurf.ai/v1';
+const SURF_BASE = '/api/proxy?path=';
 const DEFAULT_TOKENS = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP'];
 
 let watchlist = [...DEFAULT_TOKENS];
@@ -8,7 +7,6 @@ let activeToken = null;
 let chartInstance = null;
 let refreshTimer = null;
 
-/* ── Formatters ── */
 function fmtPrice(n) {
   if (!n && n !== 0) return '—';
   if (n >= 1000) return '$' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -23,22 +21,19 @@ function fmtLarge(n) {
   return '$' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-/* ── API calls ── */
 async function fetchPrice(symbol) {
   try {
-    const r = await fetch(`${SURF_BASE}/exchange/ticker?symbol=${symbol}USDT`, {
-      headers: { 'x-api-key': SURF_KEY, 'Content-Type': 'application/json' }
-    });
+    const r = await fetch(`${SURF_BASE}exchange/ticker&symbol=${symbol}USDT`);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     const data = d.data || d;
     return {
       symbol,
-      price:    parseFloat(data.last || data.price || data.lastPrice || 0),
+      price:     parseFloat(data.last || data.price || data.lastPrice || 0),
       change24h: parseFloat(data.percentage || data.priceChangePercent || data.change_percentage || 0),
-      volume:   parseFloat(data.quoteVolume || data.volume || data.baseVolume || 0),
-      high:     parseFloat(data.high || 0),
-      low:      parseFloat(data.low || 0),
+      volume:    parseFloat(data.quoteVolume || data.volume || data.baseVolume || 0),
+      high:      parseFloat(data.high || 0),
+      low:       parseFloat(data.low || 0),
       found: true
     };
   } catch (e) {
@@ -48,9 +43,7 @@ async function fetchPrice(symbol) {
 
 async function fetchCandles(symbol) {
   try {
-    const r = await fetch(`${SURF_BASE}/exchange/ohlcv?symbol=${symbol}USDT&timeframe=1h&limit=24`, {
-      headers: { 'x-api-key': SURF_KEY }
-    });
+    const r = await fetch(`${SURF_BASE}exchange/ohlcv&symbol=${symbol}USDT&timeframe=1h&limit=24`);
     if (!r.ok) return null;
     const d = await r.json();
     return d.data || d;
@@ -59,16 +52,13 @@ async function fetchCandles(symbol) {
 
 async function fetchNews(symbol) {
   try {
-    const r = await fetch(`${SURF_BASE}/news/feed?query=${symbol}&limit=5`, {
-      headers: { 'x-api-key': SURF_KEY }
-    });
+    const r = await fetch(`${SURF_BASE}news/feed&query=${symbol}&limit=5`);
     if (!r.ok) return [];
     const d = await r.json();
     return (d.data || d.items || d.articles || d || []).slice(0, 5);
   } catch (e) { return []; }
 }
 
-/* ── Render helpers ── */
 function renderSummary() {
   const all = watchlist.map(s => priceData[s]).filter(d => d && d.found);
   document.getElementById('sum-count').textContent = watchlist.length;
@@ -223,7 +213,6 @@ async function loadNews(sym) {
   </div>`;
 }
 
-/* ── Actions ── */
 async function addToken() {
   const input = document.getElementById('search-input');
   const sym = input.value.trim().toUpperCase();
@@ -274,11 +263,9 @@ function showSection(name) {
   event.target.closest('.nav-item').classList.add('active');
 }
 
-/* ── Keyboard shortcut ── */
 document.getElementById('search-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') addToken();
 });
 
-/* ── Boot ── */
 refreshAll();
 refreshTimer = setInterval(refreshAll, 60000);
